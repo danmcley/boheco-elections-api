@@ -1,35 +1,32 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Http\Controllers\Api;
 
+use App\Models\Member;
 use Illuminate\Support\Facades\DB;
-use App\Models\Post;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
-class PostController extends Controller
+class MembersController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $data = DB::select("SELECT [Id] ,[MembershipType] ,[FirstName] ,[MiddleName] ,[LastName] ,[Suffix] ,[OrganizationName] ,[Birthdate] ,[Sitio] ,[Barangay] ,[Town] 
-        ,[ContactNumbers],[EmailAddress] ,[DateApplied],[DateOfPMS] ,[DateApproved] ,[CivilStatus] ,[Religion] ,[Citizenship] ,[ApplicationStatus]
-        ,[Notes] ,[Trashed] ,[created_at] ,[updated_at] ,[Gender] ,[OrganizationRepresentative] ,[ResidenceNumber] ,[UserId] ,[ORDate] ,[ORNumber] ,[Office]
-        FROM [main].[dbo].[CRM_MemberConsumers]");
+        $data = DB::select("SELECT [Id] ,[FirstName] ,[MiddleName] ,[LastName] ,[Suffix] ,[Birthdate] ,[Sitio] ,[Barangay] ,[Town] 
+        ,[ContactNumbers],[EmailAddress], [created_at] ,[updated_at] ,[Gender]  FROM [main].[dbo].[CRM_MemberConsumers]");
         $dataFullname = [];
         foreach ($data as $item) {
             $dataFullname[] = $item->FirstName . " " . $item->MiddleName . " " . $item->LastName;
         }
         return response()->json( [
-            'FullName' => $dataFullname
+            'FirstName' => $data[0]->FirstName,
+            'MiddleName' => $data[0]->MiddleName,
+            'LastName' => $data[0]->LastName,
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
          $data = $request->validate([
@@ -54,7 +51,8 @@ class PostController extends Controller
      */
     public function show(string $id)
     {
-        return response()->json( [
+        
+         return response()->json( [
             'id' => 1,
             'title' => 'Hello World',
             'message' => 'This is the posts index method.'
@@ -66,7 +64,7 @@ class PostController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $data = $request->validate([
+       $data = $request->validate([
             'title' => 'required|string|min:3',
             'body' => 'required|string|min:10',
         ]);
