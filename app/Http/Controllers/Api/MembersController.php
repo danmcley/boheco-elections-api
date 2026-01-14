@@ -1,85 +1,96 @@
 <?php
-
 namespace App\Http\Controllers\Api;
 
 use App\Models\Member;
-use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\MemberRequest;
+use App\Http\Requests\UpdateMemberRequest;
+use App\Http\Resources\MemberResource;
 
 class MembersController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * List members (NO validation request here)
      */
-    public function index()
+    public function index(Request $request)
     {
-        $data = DB::select("SELECT [Id] ,[FirstName] ,[MiddleName] ,[LastName] ,[Suffix] ,[Birthdate] ,[Sitio] ,[Barangay] ,[Town] 
-        ,[ContactNumbers],[EmailAddress], [created_at] ,[updated_at] ,[Gender]  FROM [main].[dbo].[CRM_MemberConsumers]");
-        $dataFullname = [];
-        foreach ($data as $item) {
-            $dataFullname[] = $item->FirstName . " " . $item->MiddleName . " " . $item->LastName;
+        $perPage = $request->get('per_page', 100);
+
+        $query = Member::query();
+
+        if ($request->filled('town')) {
+            $query->where('Town', $request->town);
         }
-        return response()->json( [
-            'FirstName' => $data[0]->FirstName,
-            'MiddleName' => $data[0]->MiddleName,
-            'LastName' => $data[0]->LastName,
-        ]);
-    }
 
-    public function store(Request $request)
-    {
-         $data = $request->validate([
-            'title' => 'required|string|min:5',
-            'body' => 'required|string|min:10',
-        ]);
+        if ($request->filled('gender')) {
+            $query->where('Gender', $request->gender);
+        }
 
-        // $data['author_id'] = 1; // Placeholder for authenticated user ID
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('FirstName', 'like', "%{$search}%")
+                  ->orWhere('LastName', 'like', "%{$search}%")
+                  ->orWhere('EmailAddress', 'like', "%{$search}%");
+            });
+        }
 
-        $post = Post::create($data);
-
-        // return response()->json( [
-        //     'id' => 1,
-        //     'title' => 'Hello World',
-        //     'message' => 'This is the posts index method.'
-        // ]);
-        return response()->json($post, 201);
+        return MemberResource::collection(
+            $query->orderBy('Id')->cursorPaginate($perPage)
+        );
     }
 
     /**
-     * Display the specified resource.
+     * Store member
      */
-    public function show(string $id)
+    public function store(MemberRequest $request)
     {
-        
-         return response()->json( [
-            'id' => 1,
-            'title' => 'Hello World',
-            'message' => 'This is the posts index method.'
-        ]);
+        $member = Member::create($request->validated());
+        return new MemberResource($member);
     }
 
     /**
-     * Update the specified resource in storage.
+     * Show member
      */
-    public function update(Request $request, string $id)
+    public function show($id)
     {
-       $data = $request->validate([
-            'title' => 'required|string|min:3',
-            'body' => 'required|string|min:10',
-        ]);
+        $member = Member::find($id);
 
-        return response()->json([
-            'message' => 'Post updated successfully',
-            'data' => $data
-        ]);
+        if (!$member) {
+            return response()->json(['message' => 'Member not found'], 404);
+        }
+
+        return new MemberResource($member);
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Update member
      */
-    public function destroy(string $id)
+    public function update(UpdateMemberRequest $request, $id)
     {
-        return response()->noContent();
+        $member = Member::find($id);
+
+        if (!$member) {
+            return response()->json(['message' => 'Member not found'], 404);
+        }
+
+        $member->update($request->validated());
+        return new MemberResource($member);
+    }
+
+    /**
+     * Delete member
+     */
+    public function destroy($id)
+    {
+        $member = Member::find($id);
+
+        if (!$member) {
+            return response()->json(['message' => 'Member not found'], 404);
+        }
+
+        $member->delete();
+        return response()->json(['message' => 'Member deleted successfully']);
     }
 }
