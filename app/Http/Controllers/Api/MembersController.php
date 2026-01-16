@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers\Api;
 
+use Illuminate\Support\Facades\DB;
 use App\Models\Member;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
@@ -30,9 +31,9 @@ class MembersController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('FirstName', 'like', "%{$search}%")
-                  ->orWhere('LastName', 'like', "%{$search}%")
-                  ->orWhere('EmailAddress', 'like', "%{$search}%");
+                $q->where('FirstName', 'like', "{$search}%")
+                  ->orWhere('LastName', 'like', "{$search}%")
+                  ->orWhere('EmailAddress', 'like', "{$search}%");
             });
         }
 
@@ -78,6 +79,18 @@ class MembersController extends Controller
         $member->update($request->validated());
         return new MemberResource($member);
     }
+//     public function update(UpdateMemberRequest $request, $id)
+// {
+//     $affected = DB::connection('sqlsrv')
+//         ->table('CRM_MemberConsumers')
+//         ->where('id', $id)
+//         ->update([
+//             'LastName' => $request->input('last_name')
+//         ]);
+
+//     return response()->json(['rows_updated' => $affected]);
+// }
+
 
     /**
      * Delete member

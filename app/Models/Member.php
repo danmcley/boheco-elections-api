@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Member extends Model
 {
     protected $table = 'CRM_MemberConsumers';
-    protected $primaryKey = 'Id';
+    protected $primaryKey = "Id";
     public $timestamps = true;
 
     protected $fillable = [
@@ -24,6 +24,7 @@ class Member extends Model
         'EmailAddress',
     ];
 
+    
     protected $appends = ['FullName'];
 
     public function getFullNameAttribute()

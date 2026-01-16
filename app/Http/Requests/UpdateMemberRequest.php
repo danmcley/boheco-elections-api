@@ -11,7 +11,7 @@ class UpdateMemberRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -21,6 +21,7 @@ class UpdateMemberRequest extends FormRequest
      */
     public function rules(): array
     {
+        $id = $this->route('id');
         return [
              'FirstName'      => 'sometimes|required|string|max:255',
             'MiddleName'     => 'nullable|string|max:255',
