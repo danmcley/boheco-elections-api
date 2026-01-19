@@ -1,24 +1,23 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
-use Illuminate\Support\Facades\DB;
 use App\Models\Member;
+use App\Models\MemberSpouse;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\MemberResource;
 use App\Http\Requests\MemberRequest;
 use App\Http\Requests\UpdateMemberRequest;
-use App\Http\Resources\MemberResource;
 
 class MembersController extends Controller
 {
-    /**
-     * List members (NO validation request here)
-     */
     public function index(Request $request)
     {
         $perPage = $request->get('per_page', 100);
+        $search = $request->get('search', null);
 
-        $query = Member::query();
+        $query = Member::with('spouse')->orderBy('Id');
 
         if ($request->filled('town')) {
             $query->where('Town', $request->town);
@@ -28,35 +27,49 @@ class MembersController extends Controller
             $query->where('Gender', $request->gender);
         }
 
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('FirstName', 'like', "{$search}%")
-                  ->orWhere('LastName', 'like', "{$search}%")
-                  ->orWhere('EmailAddress', 'like', "{$search}%");
+        if ($search) {
+            $query->where(function($q) use ($search) {
+   
+                $q->where('Id', 'like', "{$search}%")
+                ->orWhere('FirstName', 'like', "{$search}%")
+                ->orWhere('LastName', 'like', "{$search}%")
+                ->orWhere('EmailAddress', 'like', "{$search}%");
+
+                $q->orWhereHas('spouse', function ($sq) use ($search) {
+                    $sq->where('Id', 'like', "{$search}%")
+                    ->orWhere('FirstName', 'like', "{$search}%")
+                    ->orWhere('LastName', 'like', "{$search}%")
+                    ->orWhere('EmailAddress', 'like', "{$search}%");
+                });
+
+                $q->orWhereIn('Id', function($sub) use ($search) {
+                    $sub->select('MemberConsumerId')
+                        ->from('CRM_MemberConsumerSpouse')
+                        ->where('Id', 'like', "{$search}%")
+                        ->orWhere('FirstName', 'like', "{$search}%")
+                        ->orWhere('LastName', 'like', "{$search}%")
+                        ->orWhere('EmailAddress', 'like', "{$search}%");
+                });
             });
         }
 
-        return MemberResource::collection(
-            $query->orderBy('Id')->cursorPaginate($perPage)
-        );
+        $members = $query->cursorPaginate($perPage);
+
+        return MemberResource::collection($members);
     }
 
-    /**
-     * Store member
-     */
     public function store(MemberRequest $request)
     {
         $member = Member::create($request->validated());
-        return new MemberResource($member);
+
+        return new MemberResource(
+            $member->load('spouse')
+        );
     }
 
-    /**
-     * Show member
-     */
     public function show($id)
     {
-        $member = Member::find($id);
+        $member = Member::with('spouse')->find($id);
 
         if (!$member) {
             return response()->json(['message' => 'Member not found'], 404);
@@ -65,9 +78,6 @@ class MembersController extends Controller
         return new MemberResource($member);
     }
 
-    /**
-     * Update member
-     */
     public function update(UpdateMemberRequest $request, $id)
     {
         $member = Member::find($id);
@@ -77,24 +87,12 @@ class MembersController extends Controller
         }
 
         $member->update($request->validated());
-        return new MemberResource($member);
+
+        return new MemberResource(
+            $member->load('spouse')
+        );
     }
-//     public function update(UpdateMemberRequest $request, $id)
-// {
-//     $affected = DB::connection('sqlsrv')
-//         ->table('CRM_MemberConsumers')
-//         ->where('id', $id)
-//         ->update([
-//             'LastName' => $request->input('last_name')
-//         ]);
 
-//     return response()->json(['rows_updated' => $affected]);
-// }
-
-
-    /**
-     * Delete member
-     */
     public function destroy($id)
     {
         $member = Member::find($id);
@@ -104,6 +102,9 @@ class MembersController extends Controller
         }
 
         $member->delete();
-        return response()->json(['message' => 'Member deleted successfully']);
+
+        return response()->json([
+            'message' => 'Member deleted successfully'
+        ]);
     }
 }

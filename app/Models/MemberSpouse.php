@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Member extends Model
+class MemberSpouse extends Model
 {
-    protected $table = 'CRM_MemberConsumers';
+    protected $table = 'CRM_MemberConsumerSpouse';
     protected $primaryKey = 'Id';
 
     protected $keyType = 'string';       
@@ -14,6 +14,7 @@ class Member extends Model
     public $timestamps = true;
 
     protected $fillable = [
+        'MemberConsumerId', 
         'FirstName',
         'MiddleName',
         'LastName',
@@ -34,26 +35,12 @@ class Member extends Model
         return trim("{$this->FirstName} {$this->MiddleName} {$this->LastName} {$this->Suffix}");
     }
 
-    public function spouse()
+    public function member()
     {
-        return $this->hasOne(
-            MemberSpouse::class,
-            'MemberConsumerId', 
-            'Id'                
+        return $this->belongsTo(
+            Member::class,
+            'MemberConsumerId',
+            'Id'
         );
     }
-
-    public function asSpouse()
-{
-    return $this->hasOne(
-        Member::class,
-        'Id',
-        'MemberConsumerId'
-    )->join(
-        'CRM_MemberConsumerSpouse',
-        'CRM_MemberConsumers.Id',
-        '=',
-        'CRM_MemberConsumerSpouse.MemberConsumerId'
-    );
-}
 }
