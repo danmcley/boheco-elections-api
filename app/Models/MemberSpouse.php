@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
 
 class MemberSpouse extends Model
@@ -28,19 +29,39 @@ class MemberSpouse extends Model
         'EmailAddress',
     ];
 
-    protected $appends = ['FullName'];
+    protected $appends = [
+        'FullName', 
+        'FullAddress'
+    ];
 
     public function getFullNameAttribute()
     {
         return trim("{$this->FirstName} {$this->MiddleName} {$this->LastName} {$this->Suffix}");
     }
 
+    public function getFullAddressAttribute()
+    {
+        $barangay = $this->barangayDetail?->Barangay;
+        $town = $this->townDetail?->Town;
+        $sitio = $this->Sitio;
+
+        $parts = array_filter([$barangay, $sitio, $town]);
+
+        return implode(', ', $parts);
+    }
+
     public function member()
     {
-        return $this->belongsTo(
-            Member::class,
-            'MemberConsumerId',
-            'Id'
-        );
+        return $this->belongsTo(Member::class, 'MemberConsumerId', 'Id');
+    }
+
+    public function townDetail()
+    {
+        return $this->belongsTo(Town::class, 'Town', 'id');
+    }
+
+    public function barangayDetail()
+    {
+        return $this->belongsTo(Barangay::class, 'Barangay', 'id');
     }
 }

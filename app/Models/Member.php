@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
 
 class Member extends Model
@@ -12,13 +13,17 @@ class Member extends Model
     protected $keyType = 'string';       
     public $incrementing = false;         
     public $timestamps = true;
+    
+    protected $casts = [
+        'Town' => 'integer',
+    ];
 
     protected $fillable = [
-        'FirstName',
-        'MiddleName',
-        'LastName',
-        'Suffix',
-        'Gender',
+        'FirstName', 
+        'MiddleName', 
+        'LastName', 
+        'Suffix', 
+        'Gender', 
         'BirthDate',
         'Sitio',
         'Barangay',
@@ -27,33 +32,46 @@ class Member extends Model
         'EmailAddress',
     ];
 
-    protected $appends = ['FullName'];
+    protected $appends = [
+        'FullName', 
+        'FullAddress'
+    ];
 
     public function getFullNameAttribute()
     {
         return trim("{$this->FirstName} {$this->MiddleName} {$this->LastName} {$this->Suffix}");
     }
 
+    public function getFullAddressAttribute()
+    {
+        $barangay = $this->barangayDetail?->Barangay;
+        $town = $this->townDetail?->Town;
+        $sitio = $this->Sitio;
+
+        $parts = array_filter([$barangay, $sitio, $town]);
+
+        return implode(', ', $parts);
+    }
+
+
     public function spouse()
     {
-        return $this->hasOne(
-            MemberSpouse::class,
-            'MemberConsumerId', 
-            'Id'                
-        );
+        return $this->hasOne(MemberSpouse::class, 'MemberConsumerId', 'Id');
     }
 
     public function asSpouse()
-{
-    return $this->hasOne(
-        Member::class,
-        'Id',
-        'MemberConsumerId'
-    )->join(
-        'CRM_MemberConsumerSpouse',
-        'CRM_MemberConsumers.Id',
-        '=',
-        'CRM_MemberConsumerSpouse.MemberConsumerId'
-    );
-}
+    {
+        return $this->hasOne(Member::class, 'Id', 'MemberConsumerId')->
+            join('CRM_MemberConsumerSpouse', 'CRM_MemberConsumers.Id','=','CRM_MemberConsumerSpouse.MemberConsumerId');
+    }
+
+    public function townDetail()
+    {
+        return $this->belongsTo(Town::class, 'Town', 'id');
+    }
+
+    public function barangayDetail()
+    {
+        return $this->belongsTo(Barangay::class, 'Barangay', 'id');
+    }
 }
