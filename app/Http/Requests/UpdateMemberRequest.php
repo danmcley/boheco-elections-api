@@ -23,7 +23,7 @@ class UpdateMemberRequest extends FormRequest
     {
         $id = $this->route('id');
         return [
-             'FirstName'      => 'sometimes|required|string|max:255',
+            'FirstName'      => 'sometimes|required|string|max:255',
             'MiddleName'     => 'nullable|string|max:255',
             'LastName'       => 'sometimes|required|string|max:255',
             'Suffix'         => 'nullable|string|max:50',

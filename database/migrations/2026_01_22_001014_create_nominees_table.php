@@ -13,6 +13,14 @@ return new class extends Migration
     {
         Schema::create('nominees', function (Blueprint $table) {
             $table->id();
+            $table->string('first_name');
+            $table->string('middle_name')->nullable();
+            $table->string('last_name');
+            $table->string('suffix')->nullable();
+            $table->string('district');
+            $table->string('town');
+            $table->string('nickname')->nullable();
+            $table->string('image_path')->nullable();
             $table->timestamps();
         });
     }
