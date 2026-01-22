@@ -8,14 +8,15 @@ use Illuminate\Database\Eloquent\Model;
 class Member extends Model
 {
     protected $table = 'CRM_MemberConsumers';
-    protected $primaryKey = 'Id';
 
+    protected $primaryKey = 'Id';
     protected $keyType = 'string';       
     public $incrementing = false;         
     public $timestamps = true;
     
+
     protected $casts = [
-        'Town' => 'integer',
+        'Town' => 'integer'
     ];
 
     protected $fillable = [
@@ -57,12 +58,6 @@ class Member extends Model
     public function spouse()
     {
         return $this->hasOne(MemberSpouse::class, 'MemberConsumerId', 'Id');
-    }
-
-    public function asSpouse()
-    {
-        return $this->hasOne(Member::class, 'Id', 'MemberConsumerId')->
-            join('CRM_MemberConsumerSpouse', 'CRM_MemberConsumers.Id','=','CRM_MemberConsumerSpouse.MemberConsumerId');
     }
 
     public function townDetail()

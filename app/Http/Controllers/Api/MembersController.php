@@ -4,59 +4,71 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Member;
 use App\Models\MemberSpouse;
+use App\Models\Town;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\MemberResource;
-use App\Http\Requests\MemberRequest;
-use App\Http\Requests\UpdateMemberRequest;
 
 class MembersController extends Controller
 {
     public function index(Request $request)
     {
-        $perPage = $request->get('per_page', 100);
-        $search  = trim($request->get('search'));
+        $perPage = (int) $request->get('per_page', 100);
+        $search  = trim($request->get('search', ''));
 
-        $query = Member::with([
+        $memberQuery = Member::with([
             'spouse',
             'townDetail',
-            'barangayDetail'
-        ])->orderBy('Id');
-    
+            'barangayDetail',
+        ]);
+        
         if ($request->filled('gender')) {
-            $query->where('Gender', $request->gender);
+            $memberQuery->where('Gender', $request->gender);
         }
 
-         if ($request->filled('town')) {
-            $town = \App\Models\Town::where('Town', $request->town)->first();
+        if ($request->filled('id')) {
+            $memberQuery->where('Id', $request->id);
+        }
+
+        if ($request->filled('town')) {
+            $town = Town::where('Town', $request->town)->first();
             if ($town) {
-                $query->where('Town', $town->id);
+                $memberQuery->where('Town', $town->id);
             }
         }
 
         if ($request->filled('barangay')) {
-            $query->whereHas('barangayDetail', function ($q) use ($request) {
+            $memberQuery->whereHas('barangayDetail', function ($q) use ($request) {
                 $q->where('Barangay', $request->barangay);
             });
         }
 
-        if ($search) {
-            $query->where(function ($q) use ($search) {
+        if ($search !== '') {
 
+            $memberQuery->where(function ($q) use ($search) {
                 $q->where('FirstName', 'like', "%{$search}%")
-                ->orWhere('MiddleName', 'like', "%{$search}%")
-                ->orWhere('LastName', 'like', "%{$search}%");
-
-                $q->orWhereHas('spouse', function ($sq) use ($search) {
-                    $sq->where('FirstName', 'like', "%{$search}%")
-                    ->orWhere('MiddleName', 'like', "%{$search}%")
-                    ->orWhere('LastName', 'like', "%{$search}%");
-                });
+                  ->orWhere('MiddleName', 'like', "%{$search}%")
+                  ->orWhere('LastName', 'like', "%{$search}%");
             });
+
+            $spouseMemberIds = MemberSpouse::where(function ($q) use ($search) {
+                    $q->where('FirstName', 'like', "%{$search}%")
+                      ->orWhere('MiddleName', 'like', "%{$search}%")
+                      ->orWhere('LastName', 'like', "%{$search}%");
+                })
+                ->pluck('MemberConsumerId')
+                ->unique()
+                ->toArray();
+
+            if (!empty($spouseMemberIds)) {
+                $memberQuery->orWhereIn('Id', $spouseMemberIds);
+            }
         }
 
         return MemberResource::collection(
-            $query->cursorPaginate($perPage)
+            $memberQuery
+                ->orderBy('Id')
+                ->cursorPaginate($perPage)
         );
     }
 
@@ -71,14 +83,25 @@ class MembersController extends Controller
 
     public function show($id)
     {
-        $member = Member::with('spouse')->find($id);
+    $member = Member::with(['spouse', 'townDetail', 'barangayDetail'])->find($id);
 
-        if (!$member) {
-            return response()->json(['message' => 'Member not found'], 404);
-        }
-
+    if ($member) {
         return new MemberResource($member);
     }
+
+    $spouse = MemberSpouse::with(['member', 'townDetail', 'barangayDetail'])->find($id);
+
+    if ($spouse) {
+        return new MemberResource($spouse);
+    }
+
+    // If neither found, return 404
+    return response()->json([
+        'message' => 'Person not found'
+    ], 404);
+}
+
+
 
     public function update(UpdateMemberRequest $request, $id)
     {

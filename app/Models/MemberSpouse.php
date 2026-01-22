@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class MemberSpouse extends Model
 {
     protected $table = 'CRM_MemberConsumerSpouse';
-    protected $primaryKey = 'Id';
+    protected $primaryKey = 'id';
 
     protected $keyType = 'string';       
     public $incrementing = false;         
@@ -54,6 +54,7 @@ class MemberSpouse extends Model
     {
         return $this->belongsTo(Member::class, 'MemberConsumerId', 'Id');
     }
+
 
     public function townDetail()
     {
